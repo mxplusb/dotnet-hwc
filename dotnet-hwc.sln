@@ -1,9 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.26430.6
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dotnet-hwc", "dotnet-hwc\dotnet-hwc.csproj", "{64E81375-72F0-49A4-8033-04752BE6F86F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HwcBootstrapper", "dotnet-hwc\HwcBootstrapper.csproj", "{64E81375-72F0-49A4-8033-04752BE6F86F}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "hwcconfig", "hwcconfig\hwcconfig.csproj", "{F7C61958-73A7-4DAB-9DBE-1BEAAF38A3EC}"
 EndProject
