@@ -1,5 +1,8 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
+using System.Xml.Linq;
+using System.Xml.XPath;
 using CommandLine;
 using HwcBootstrapper.ConfigTemplates;
 
@@ -18,7 +21,12 @@ namespace HwcBootstrapper
                 {
                     throw new ValidationException("bad args!");
                 }
-               
+                var appConfigTemplate = new ApplicationHostConfig();
+                //todo: Merge Config settings and Option class
+                appConfigTemplate.Model = new ConfigSettings();
+                var appConfigText = appConfigTemplate.TransformText();
+
+                ValidateRequiredDependencies(appConfigText);
 
                 string rootPath = Path.GetFullPath(options.AppRootPath);
                 string uuid = Guid.NewGuid().ToString();
@@ -62,6 +70,19 @@ namespace HwcBootstrapper
                 return 1;
             }
             return 0;
+        }
+        public static void ValidateRequiredDependencies(string applicationHostConfigText)
+        {
+            var doc = XDocument.Parse(applicationHostConfigText);
+
+            var missingDlls = doc.XPathSelectElements("//configuration/system.webServer/globalModules/add")
+                .Select(x => Environment.ExpandEnvironmentVariables(x.Attribute("image").Value))
+                .Where(x => !File.Exists(x))
+                .ToList();
+            if (missingDlls.Any())
+            {
+                throw new ValidationException($"Missing required ddls:\n{string.Join("\n", missingDlls)}");
+            }
         }
     }
 
