@@ -1,9 +1,11 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Xml.Linq;
 using System.Xml.XPath;
 using CommandLine;
@@ -17,40 +19,40 @@ namespace HwcBootstrapper
     {
         static bool ConsoleEventCallback(CtrlEvent eventType)
         {
-            HostableWebCore.Shutdown(true);
-            Environment.Exit(0);
+            Shutdown();
             return true;
         }
 
+        private static Options _options;
 
         static int Main(string[] args)
         {
             SystemEvents.SetConsoleEventHandler(ConsoleEventCallback);
             try
             {
-                var options = LoadOptions(args);
+                _options = LoadOptions(args);
 
-                var appConfigTemplate = new ApplicationHostConfig {Model = options};
+                var appConfigTemplate = new ApplicationHostConfig {Model = _options};
                 var appConfigText = appConfigTemplate.TransformText();
                 ValidateRequiredDllDependencies(appConfigText);
-                var webConfigText = new WebConfig() {Model = options}.TransformText();
+                var webConfigText = new WebConfig() {Model = _options}.TransformText();
                 var aspNetText = new AspNetConfig().TransformText();
 
-                Directory.CreateDirectory(options.TempDirectory);
-                Directory.CreateDirectory(options.ConfigDirectory);
-                File.WriteAllText(options.ApplicationHostConfigPath, appConfigText);
-                File.WriteAllText(options.WebConfigPath, webConfigText);
-                File.WriteAllText(options.AspnetConfigPath, aspNetText);
+                Directory.CreateDirectory(_options.TempDirectory);
+                Directory.CreateDirectory(_options.ConfigDirectory);
+                File.WriteAllText(_options.ApplicationHostConfigPath, appConfigText);
+                File.WriteAllText(_options.WebConfigPath, webConfigText);
+                File.WriteAllText(_options.AspnetConfigPath, aspNetText);
 
 
 
-                var impersonationRequired = !string.IsNullOrEmpty(options.User);
+                var impersonationRequired = !string.IsNullOrEmpty(_options.User);
                 IDisposable impresonationContext;
                 if (impersonationRequired)
                 {
-                    string userName = options.User;
+                    string userName = _options.User;
                     string domain = string.Empty;
-                    var match = Regex.Match(options.User, @"^(?<domain>\w+)\\(?<user>\w+)$"); // parse out domain from format DOMAIN\Username
+                    var match = Regex.Match(_options.User, @"^(?<domain>\w+)\\(?<user>\w+)$"); // parse out domain from format DOMAIN\Username
 
                     if (match.Success)
                     {
@@ -58,7 +60,7 @@ namespace HwcBootstrapper
                         domain = match.Groups["domain"].Value;
                     }
 
-                    impresonationContext = Impersonation.LogonUser(domain, userName, options.Password, LogonType.Network);
+                    impresonationContext = Impersonation.LogonUser(domain, userName, _options.Password, LogonType.Network);
                 }
                 else
                 {
@@ -68,7 +70,7 @@ namespace HwcBootstrapper
                 {
                     try
                     {
-                        HostableWebCore.Activate(options.ApplicationHostConfigPath, options.WebConfigPath, options.ApplicationInstanceId);
+                        HostableWebCore.Activate(_options.ApplicationHostConfigPath, _options.WebConfigPath, _options.ApplicationInstanceId);
                     }
                     catch (UnauthorizedAccessException ex)
                     {
@@ -77,10 +79,11 @@ namespace HwcBootstrapper
                         throw;
                     }
                 }
-                
-                
-                Console.WriteLine($"Server ID {options.ApplicationInstanceId} started");
+
+
+                Console.WriteLine($"Server ID {_options.ApplicationInstanceId} started");
                 Console.WriteLine("PRESS Enter to shutdown");
+
                 Console.ReadLine();
             }
 
@@ -94,7 +97,38 @@ namespace HwcBootstrapper
                 Console.Error.WriteLine(ex);
                 return 1;
             }
+            finally
+            {
+                Shutdown();
+            }
+            
             return 0;
+        }
+
+        private static void Shutdown()
+        {
+
+            try
+            {
+                HostableWebCore.Shutdown(true);
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine("Hostable webcore didn't shut down cleanly:");
+                Console.Error.WriteLine(ex);
+            }
+            
+            for (int i = 0; i < 5; i++)
+            {
+                try
+                {
+                    Directory.Delete(_options.TempDirectory);
+                }
+                catch (UnauthorizedAccessException) // just make sure all locks are released
+                {
+                    Thread.Sleep(500);
+                }
+            }
         }
 
         private class DummyDisposable : IDisposable
