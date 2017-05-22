@@ -1,17 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.IO;
 
-namespace hwcconfig
-{
+namespace hwcconfig {
     /// <summary>
     /// HwcConfig manages all the configs related to the initial HWC instantiation.
     /// </summary>
-    public class HwcConfig
-    {
+    public class HwcConfig {
         public int Port;
         public string Instance;
         public string RootPath;
@@ -20,10 +14,8 @@ namespace hwcconfig
         public string WebConfigPath;
         public string ApplicationHostConfigPath;
 
-        public HwcConfig New(int port, string rootPath, string tempPath, string uuid)
-        {
-            HwcConfig hConf = new HwcConfig()
-            {
+        public HwcConfig New(int port, string rootPath, string tempPath, string uuid) {
+            HwcConfig hConf = new HwcConfig() {
                 Port = port,
                 RootPath = rootPath,
                 TempDirectory = tempPath,
@@ -32,11 +24,9 @@ namespace hwcconfig
 
             string localDest = Path.Combine(hConf.TempDirectory, "config");
 
-            try
-            {
+            try {
                 Directory.CreateDirectory(localDest);
-            } catch(IOException io)
-            {
+            } catch (IOException io) {
                 Console.WriteLine("Cannot create HWC config folder at {0}: {1}", localDest, io);
                 Environment.Exit(1);
             }
