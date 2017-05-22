@@ -3,6 +3,7 @@
 <#@ import namespace="System.Linq" #>
 <#@ import namespace="System.Text" #>
 <#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="System.IO" #>
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
   <configSections>
@@ -98,7 +99,7 @@
       <virtualDirectoryDefaults allowSubDirConfig="true" />
 			<site name="IronFoundrySite" id="1" serverAutoStart="true">
         <application path="/" applicationPool="AppPool<#= Model.Port #>">
-          <virtualDirectory path="/" physicalPath="<#= Model.RootPath #>" />
+          <virtualDirectory path="/" physicalPath="<#= Path.GetFullPath(Model.AppRootPath) #>" />
         </application>
         <bindings>
           <binding protocol="http" bindingInformation="*:<#= Model.Port #>:" />

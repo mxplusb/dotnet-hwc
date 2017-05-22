@@ -12,6 +12,7 @@ namespace HwcBootstrapper.ConfigTemplates
     using System.Linq;
     using System.Text;
     using System.Collections.Generic;
+    using System.IO;
     using System;
     
     /// <summary>
@@ -102,14 +103,14 @@ namespace HwcBootstrapper.ConfigTemplates
                     "ProtectedData>\r\n\r\n  <system.applicationHost>\r\n\r\n    <applicationPools>\r\n\t\t<add n" +
                     "ame=\"AppPool");
             
-            #line 85 "C:\projects\dotnet-hwc\dotnet-hwc\ConfigTemplates\ApplicationHostConfig.tt"
+            #line 86 "C:\projects\dotnet-hwc\dotnet-hwc\ConfigTemplates\ApplicationHostConfig.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(Model.Port));
             
             #line default
             #line hidden
             this.Write("\" managedRuntimeVersion=\"v4.0\" managedPipelineMode=\"Integrated\" CLRConfigFile=\"");
             
-            #line 85 "C:\projects\dotnet-hwc\dotnet-hwc\ConfigTemplates\ApplicationHostConfig.tt"
+            #line 86 "C:\projects\dotnet-hwc\dotnet-hwc\ConfigTemplates\ApplicationHostConfig.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(Model.AspnetConfigPath));
             
             #line default
@@ -118,7 +119,7 @@ namespace HwcBootstrapper.ConfigTemplates
                     "listenerAdapters>\r\n      <add name=\"http\" />\r\n    </listenerAdapters>\r\n\r\n    <si" +
                     "tes>\r\n      <siteDefaults>\r\n        <logFile logFormat=\"W3C\" directory=\"");
             
-            #line 94 "C:\projects\dotnet-hwc\dotnet-hwc\ConfigTemplates\ApplicationHostConfig.tt"
+            #line 95 "C:\projects\dotnet-hwc\dotnet-hwc\ConfigTemplates\ApplicationHostConfig.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(Model.TempDirectory));
             
             #line default
@@ -126,7 +127,7 @@ namespace HwcBootstrapper.ConfigTemplates
             this.Write("\\LogFiles\" />\r\n        <traceFailedRequestsLogging enabled=\"false\" />\r\n      </si" +
                     "teDefaults>\r\n      <applicationDefaults applicationPool=\"AppPool");
             
-            #line 97 "C:\projects\dotnet-hwc\dotnet-hwc\ConfigTemplates\ApplicationHostConfig.tt"
+            #line 98 "C:\projects\dotnet-hwc\dotnet-hwc\ConfigTemplates\ApplicationHostConfig.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(Model.Port));
             
             #line default
@@ -135,22 +136,22 @@ namespace HwcBootstrapper.ConfigTemplates
                     "\"IronFoundrySite\" id=\"1\" serverAutoStart=\"true\">\r\n        <application path=\"/\" " +
                     "applicationPool=\"AppPool");
             
-            #line 100 "C:\projects\dotnet-hwc\dotnet-hwc\ConfigTemplates\ApplicationHostConfig.tt"
+            #line 101 "C:\projects\dotnet-hwc\dotnet-hwc\ConfigTemplates\ApplicationHostConfig.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(Model.Port));
             
             #line default
             #line hidden
             this.Write("\">\r\n          <virtualDirectory path=\"/\" physicalPath=\"");
             
-            #line 101 "C:\projects\dotnet-hwc\dotnet-hwc\ConfigTemplates\ApplicationHostConfig.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(Model.RootPath));
+            #line 102 "C:\projects\dotnet-hwc\dotnet-hwc\ConfigTemplates\ApplicationHostConfig.tt"
+            this.Write(this.ToStringHelper.ToStringWithCulture(Path.GetFullPath(Model.AppRootPath)));
             
             #line default
             #line hidden
             this.Write("\" />\r\n        </application>\r\n        <bindings>\r\n          <binding protocol=\"ht" +
                     "tp\" bindingInformation=\"*:");
             
-            #line 104 "C:\projects\dotnet-hwc\dotnet-hwc\ConfigTemplates\ApplicationHostConfig.tt"
+            #line 105 "C:\projects\dotnet-hwc\dotnet-hwc\ConfigTemplates\ApplicationHostConfig.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(Model.Port));
             
             #line default
@@ -207,7 +208,7 @@ namespace HwcBootstrapper.ConfigTemplates
                     "estrictionModule\" image=\"%windir%\\System32\\inetsrv\\diprestr.dll\"  />\r\n      \r\n  " +
                     "  </globalModules>\r\n\r\n    <httpCompression directory=\"");
             
-            #line 206 "C:\projects\dotnet-hwc\dotnet-hwc\ConfigTemplates\ApplicationHostConfig.tt"
+            #line 207 "C:\projects\dotnet-hwc\dotnet-hwc\ConfigTemplates\ApplicationHostConfig.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(Model.TempDirectory));
             
             #line default

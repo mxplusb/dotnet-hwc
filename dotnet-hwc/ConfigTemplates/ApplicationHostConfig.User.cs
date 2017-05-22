@@ -2,6 +2,6 @@
 {
     partial class ApplicationHostConfig
     {
-        public  ConfigSettings Model { get; set; } = new ConfigSettings();
+        public  Options Model { get; set; } = new Options();
     }
 }

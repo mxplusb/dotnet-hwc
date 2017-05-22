@@ -1,67 +1,87 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
+using System.Security.Principal;
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using System.Xml.XPath;
 using CommandLine;
 using HwcBootstrapper.ConfigTemplates;
+using HWCServer;
+using SimpleImpersonation;
 
 namespace HwcBootstrapper
 {
     class Program
     {
+        static bool ConsoleEventCallback(CtrlEvent eventType)
+        {
+            HostableWebCore.Shutdown(true);
+            Environment.Exit(0);
+            return true;
+        }
+
 
         static int Main(string[] args)
         {
-            var options = new Options();
+            SystemEvents.SetConsoleEventHandler(ConsoleEventCallback);
             try
             {
-                var isValid = Parser.Default.ParseArgumentsStrict(args, options);
-                if (!isValid)
-                {
-                    throw new ValidationException("bad args!");
-                }
-                var appConfigTemplate = new ApplicationHostConfig();
-                //todo: Merge Config settings and Option class
-                appConfigTemplate.Model = new ConfigSettings();
+                var options = LoadOptions(args);
+
+                var appConfigTemplate = new ApplicationHostConfig {Model = options};
                 var appConfigText = appConfigTemplate.TransformText();
+                ValidateRequiredDllDependencies(appConfigText);
+                var webConfigText = new WebConfig() {Model = options}.TransformText();
+                var aspNetText = new AspNetConfig().TransformText();
 
-                ValidateRequiredDependencies(appConfigText);
+                Directory.CreateDirectory(options.TempDirectory);
+                Directory.CreateDirectory(options.ConfigDirectory);
+                File.WriteAllText(options.ApplicationHostConfigPath, appConfigText);
+                File.WriteAllText(options.WebConfigPath, webConfigText);
+                File.WriteAllText(options.AspnetConfigPath, aspNetText);
 
-                string rootPath = Path.GetFullPath(options.AppRootPath);
-                string uuid = Guid.NewGuid().ToString();
-                string userProfile = "";
 
-                // I don't think we actually need this, it should exist as you literally cannot
-                // do anything not as a user.
-                try
+
+                var impersonationRequired = !string.IsNullOrEmpty(options.User);
+                IDisposable impresonationContext;
+                if (impersonationRequired)
                 {
-                    userProfile = Environment.GetEnvironmentVariable("USERPROFILE");
-                    if (userProfile == "")
+                    string userName = options.User;
+                    string domain = string.Empty;
+                    var match = Regex.Match(options.User, @"^(?<domain>\w+)\\(?<user>\w+)$"); // parse out domain from format DOMAIN\Username
+
+                    if (match.Success)
                     {
-                        throw new Exception();
+                        userName = match.Groups["user"].Value;
+                        domain = match.Groups["domain"].Value;
+                    }
+
+                    impresonationContext = Impersonation.LogonUser(domain, userName, options.Password, LogonType.Network);
+                }
+                else
+                {
+                    impresonationContext = new DummyDisposable();
+                }
+                using (impresonationContext)
+                {
+                    try
+                    {
+                        HostableWebCore.Activate(options.ApplicationHostConfigPath, options.WebConfigPath, options.ApplicationInstanceId);
+                    }
+                    catch (UnauthorizedAccessException ex)
+                    {
+                        Console.Error.WriteLine("Access denied starting hostable web core. Start the application as administrator");
+                        Console.WriteLine("===========================");
+                        throw;
                     }
                 }
-                catch (Exception)
-                {
-                    Console.WriteLine("%USERPROFILE% is missing!");
-                    Environment.Exit(1);
-                }
-
-                string tempPath = Path.GetPathRoot(Path.Combine(userProfile, uuid, "tmp"));
-
-                try
-                {
-                    Directory.CreateDirectory(tempPath);
-                }
-                catch (IOException io)
-                {
-                    Console.WriteLine("cannot create temp directory for {0}: {1}", options.AppRootPath, io);
-                }
-
-                // hwc new config logic
-
-
+                
+                
+                Console.WriteLine($"Server ID {options.ApplicationInstanceId} started");
+                Console.WriteLine("PRESS Enter to shutdown");
+                Console.ReadLine();
             }
 
             catch (ValidationException ve)
@@ -69,9 +89,44 @@ namespace HwcBootstrapper
                 Console.Error.WriteLine(ve.Message);
                 return 1;
             }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine(ex);
+                return 1;
+            }
             return 0;
         }
-        public static void ValidateRequiredDependencies(string applicationHostConfigText)
+
+        private class DummyDisposable : IDisposable
+        {
+            public void Dispose()
+            {
+                
+            }
+        }
+        public static Options LoadOptions(string[] args)
+        {
+            var options = new Options();
+            int port;
+            if (int.TryParse(Environment.GetEnvironmentVariable("PORT"), out port))
+            {
+                options.Port = port;
+            }
+            var isValid = Parser.Default.ParseArgumentsStrict(args, options);
+            if (!isValid)
+            {
+                throw new ValidationException("bad args!");
+            }
+            var userProfileFolder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            options.ApplicationInstanceId = Guid.NewGuid().ToString();
+            options.TempDirectory = Path.Combine(userProfileFolder, $"tmp{options.ApplicationInstanceId}");
+            var configDirectory = Path.Combine(options.TempDirectory, "config");
+            options.ApplicationHostConfigPath = Path.Combine(configDirectory, "ApplicationHost.config");
+            options.WebConfigPath = Path.Combine(configDirectory, "Web.config");
+            options.AspnetConfigPath = Path.Combine(configDirectory, "AspNet.config");
+            return options;
+        }
+        public static void ValidateRequiredDllDependencies(string applicationHostConfigText)
         {
             var doc = XDocument.Parse(applicationHostConfigText);
 
@@ -84,20 +139,5 @@ namespace HwcBootstrapper
                 throw new ValidationException($"Missing required ddls:\n{string.Join("\n", missingDlls)}");
             }
         }
-    }
-
-    class Options
-    {
-        [Option("appRootPath", DefaultValue = ".", HelpText = "app web root path", Required = false)]
-        public string AppRootPath { get; set; } = Environment.CurrentDirectory;
-
-        [Option("port", DefaultValue = 0, HelpText = "port for the application to listen with", Required = false)]
-        public int Port { get; set; } = 8080;
-
-        [Option("user", DefaultValue = "", HelpText = "windows username to run application to run under", Required = false)]
-        public string User { get; set; } 
-
-        [Option("password", DefaultValue = "", HelpText = "windows password to run application to run under", Required = false)]
-        public string Password { get; set; }
     }
 }
