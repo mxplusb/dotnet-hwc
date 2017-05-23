@@ -1,61 +1,8 @@
 ﻿using System;
-using System.IO;
 using System.Runtime.InteropServices;
 
-namespace HWCServer {
-
-//    internal class WebServer : IDisposable {
-//
-//        private string _appHostConfigPath;
-//        private string _rootWebConfigPath;
-//
-//        public WebServer(string physicalPath, int port, int siteId) {
-//            string appPoolName = "AppPool" + port.ToString();
-//            _appHostConfigPath = Path.Combine(Path.GetTempPath(), Path.GetTempFileName() + ".config");
-//            _rootWebConfigPath = Environment.ExpandEnvironmentVariables(@"%windir%\Microsoft.Net\Framework\v2.0.50727\config\web.config");
-//
-//            string appHostContent = Resources.AppHostAspNet;
-//            //string appHostContent = Resources.AppHostStaticFiles;
-//
-//            File.WriteAllText(_appHostConfigPath,
-//                String.Format(appHostContent,
-//                              port,
-//                              physicalPath,
-//                              @"%windir%\Microsoft.NET\Framework\v2.0.50727",
-//                              siteId,
-//                              appPoolName));
-//        }
-//
-//        ~WebServer() {
-//            Dispose(false);
-//        }
-//
-//        public void Dispose() {
-//            Dispose(true);
-//        }
-//
-//        private void Dispose(bool disposing) {
-//            if (disposing) {
-//                GC.SuppressFinalize(this);
-//            }
-//
-//            Stop();
-//        }
-//
-//        public void Start() {
-//            if (!HostableWebCore.IsActivated) {
-//                HostableWebCore.Activate(_appHostConfigPath, _rootWebConfigPath, Guid.NewGuid().ToString());
-//            }
-//        }
-//
-//        public void Stop() {
-//            if (HostableWebCore.IsActivated) {
-//                HostableWebCore.Shutdown(false);
-//            }
-//        }
-
-        #region Hostable WebCore
-        internal static class HostableWebCore {
+namespace HwcBootstrapper {
+        public static class HostableWebCore {
 
             private static bool _isActivated;
 
@@ -120,5 +67,4 @@ namespace HWCServer {
                 internal static extern IntPtr GetProcAddress(IntPtr hModule, String procname);
             }
         }
-        #endregion
 }
