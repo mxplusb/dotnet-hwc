@@ -50,7 +50,7 @@ namespace HwcBootstrapper
                         domain = match.Groups["domain"].Value;
                     }
 
-                    impresonationContext = Impersonation.LogonUser(domain, userName, _options.Password, LogonType.Network);
+                    impresonationContext = Impersonation.LogonUser(domain, userName, _options.Password, LogonType.NewCredentials);
                 }
                 else
                 {
