@@ -50,7 +50,6 @@
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
-  <PropertyGroup />
   <ItemGroup>
     <Reference Include="CommandLine, Version=1.9.71.2, Culture=neutral, PublicKeyToken=de6f01bd326f8c32, processorArchitecture=MSIL">
       <HintPath>..\packages\CommandLineParser.1.9.71\lib\net45\CommandLine.dll</HintPath>
@@ -83,13 +82,16 @@
     </Compile>
     <Compile Include="ConfigTemplates\WebConfig.User.cs" />
     <Compile Include="CtrlEvent.cs" />
+<<<<<<< Updated upstream
     <Compile Include="Impersonation\Impersonation.cs" />
     <Compile Include="Impersonation\ImpersonationException.cs" />
     <Compile Include="Impersonation\LogonType.cs" />
     <Compile Include="Impersonation\NativeMethods.cs" />
     <Compile Include="Impersonation\SafeTokenHandle.cs" />
-    <Compile Include="Extensions.cs" />
     <Compile Include="JobObject.cs" />
+=======
+    <Compile Include="Extensions.cs" />
+>>>>>>> Stashed changes
     <Compile Include="Options.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

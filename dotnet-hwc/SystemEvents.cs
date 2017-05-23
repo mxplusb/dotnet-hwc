@@ -20,5 +20,8 @@ namespace HwcBootstrapper
             _handler = handler;
             SetConsoleCtrlHandler(_handler, true);
         }
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        static extern bool GenerateConsoleCtrlEvent(CtrlEvent sigevent, int dwProcessGroupId);
     }
 }

@@ -2,7 +2,9 @@
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Security.Principal;
+using System.Security;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Xml.Linq;
@@ -27,65 +29,76 @@ namespace HwcBootstrapper
             try
             {
                 _options = LoadOptions(args);
-
-                var appConfigTemplate = new ApplicationHostConfig {Model = _options};
-                var appConfigText = appConfigTemplate.TransformText();
-                ValidateRequiredDllDependencies(appConfigText);
-                var webConfigText = new WebConfig() {Model = _options}.TransformText();
-                var aspNetText = new AspNetConfig().TransformText();
-
-                Directory.CreateDirectory(_options.TempDirectory);
-                Directory.CreateDirectory(_options.ConfigDirectory);
-                File.WriteAllText(_options.ApplicationHostConfigPath, appConfigText);
-                File.WriteAllText(_options.WebConfigPath, webConfigText);
-                File.WriteAllText(_options.AspnetConfigPath, aspNetText);
-
                 var impersonationRequired = !string.IsNullOrEmpty(_options.User);
-                Console.WriteLine("Activating HWC with following settings:");
-                
                 if (impersonationRequired)
                 {
-                    string userName = _options.User;
-                    string domain = null;
-                    var match = Regex.Match(_options.User, @"^(?<domain>\w+)\\(?<user>\w+)$"); // parse out domain from format DOMAIN\Username
+                    Impersonate();
+                }
+                else
+                {
 
-                    if (match.Success)
+
+
+
+                    var appConfigTemplate = new ApplicationHostConfig {Model = _options};
+                    var appConfigText = appConfigTemplate.TransformText();
+                    ValidateRequiredDllDependencies(appConfigText);
+                    var webConfigText = new WebConfig() {Model = _options}.TransformText();
+                    var aspNetText = new AspNetConfig().TransformText();
+
+                    Directory.CreateDirectory(_options.TempDirectory);
+                    Directory.CreateDirectory(_options.ConfigDirectory);
+                    File.WriteAllText(_options.ApplicationHostConfigPath, appConfigText);
+                    File.WriteAllText(_options.WebConfigPath, webConfigText);
+                    File.WriteAllText(_options.AspnetConfigPath, aspNetText);
+
+                    Console.WriteLine("Activating HWC with following settings:");
+
+//                if (impersonationRequired)
+//                {
+//                    string userName = _options.User;
+//                    string domain = null;
+//                    var match = Regex.Match(_options.User, @"^(?<domain>\w+)\\(?<user>\w+)$"); // parse out domain from format DOMAIN\Username
+//
+//                    if (match.Success)
+//                    {
+//                        userName = match.Groups["user"].Value;
+//                        domain = match.Groups["domain"].Value;
+//                    }
+//                    Console.WriteLine($"Impersonation user {userName} for domain {domain}");
+//                    impresonationContext = Impersonation.LogonUser(domain, userName, _options.Password, LogonType.Service);
+//                    Console.WriteLine(WindowsIdentity.GetCurrent().Name);
+//                }
+                    try
                     {
-                        userName = match.Groups["user"].Value;
-                        domain = match.Groups["domain"].Value;
+
+                        Console.WriteLine($"ApplicationHost.config: {_options.ApplicationHostConfigPath}");
+                        Console.WriteLine($"Web.config: {_options.WebConfigPath}");
+//                        var process = Process.Start("cmd");
+//                        var job = new Job();
+//                        job.AddProcess(process.Handle);
+                        HostableWebCore.Activate(_options.ApplicationHostConfigPath, _options.WebConfigPath, _options.ApplicationInstanceId);
                     }
-                    Console.WriteLine($"Impersonation user {userName} for domain {domain}");
-                    impresonationContext = Impersonation.LogonUser(domain, userName, _options.Password, LogonType.Service);
-                    Console.WriteLine(WindowsIdentity.GetCurrent().Name);
-                }
-                try
-                {
-                    
-                    Console.WriteLine($"ApplicationHost.config: {_options.ApplicationHostConfigPath}");
-                    Console.WriteLine($"Web.config: {_options.WebConfigPath}");
-                    var process = Process.Start("cmd");
-                    var job = new Job();
-                    job.AddProcess(process.Handle);
-                    HostableWebCore.Activate(_options.ApplicationHostConfigPath, _options.WebConfigPath, _options.ApplicationInstanceId);
-                }
-                catch (UnauthorizedAccessException)
-                {
-                    Console.Error.WriteLine("Access denied starting hostable web core. Start the application as administrator");
-                    Console.WriteLine("===========================");
-                    throw;
-                }
-
-
-                Console.WriteLine($"Server ID {_options.ApplicationInstanceId} started");
-                Console.WriteLine("PRESS Enter to shutdown");
-                // we gonna read on different thread here because Console.ReadLine is not the only way the program can end
-                // we're also listening to the system events where the app is ordered to shutdown. exitWaitHandle is used to
-                // hook up both of these events
-                new Thread(() =>
+                    catch (UnauthorizedAccessException)
                     {
-                        Console.ReadLine();
-                        _exitWaitHandle.Set();
-                    }).Start();
+                        Console.Error.WriteLine("Access denied starting hostable web core. Start the application as administrator");
+                        Console.WriteLine("===========================");
+                        throw;
+                    }
+
+
+                    Console.WriteLine($"Server ID {_options.ApplicationInstanceId} started");
+                    Console.WriteLine("PRESS Enter to shutdown");
+                    // we gonna read on different thread here because Console.ReadLine is not the only way the program can end
+                    // we're also listening to the system events where the app is ordered to shutdown. exitWaitHandle is used to
+                    // hook up both of these events
+                    
+                }
+                new Thread(() =>
+                {
+                    Console.ReadLine();
+                    _exitWaitHandle.Set();
+                }).Start();
                 _exitWaitHandle.WaitOne();
                 return 0;
             }
@@ -101,39 +114,76 @@ namespace HwcBootstrapper
             finally
             {
                 Shutdown();
-                impresonationContext?.Dispose();
+//                impresonationContext?.Dispose();
             }
-
+            Console.ReadLine();
             return 1;
         }
 
+        private static void Impersonate()
+        {
+            var exeName = Process.GetCurrentProcess().MainModule.FileName;
+            var args = $"--appRootPath={_options.AppRootPath} --port={_options.Port}";
+            var processStartInfo = new ProcessStartInfo(exeName, args)
+            {
+                Domain = _options.Domain,
+                UserName = _options.UsernameWithoutDomain,
+                Password = _options.Password.ToSecureString(),
+                UseShellExecute = false,
+                RedirectStandardError = true,
+                RedirectStandardOutput = true,
+                RedirectStandardInput = true,
+                CreateNoWindow = true,
+                Verb="runas"
+            };
+            _childProcess = Process.Start(processStartInfo);
+            if(_childProcess == null)
+                throw new Exception("Impersonation of child process failed");
+            _childProcess.BeginOutputReadLine();
+            _childProcess.BeginErrorReadLine();
+            _childProcess.OutputDataReceived += (sender, eventArgs) => Console.WriteLine(eventArgs.Data);
+            _childProcess.ErrorDataReceived += (sender, eventArgs) => Console.Error.WriteLine(eventArgs.Data);
+            
+            var job = new Job();
+            job.AddProcess(_childProcess.Handle);
+        }
+
+        private static Process _childProcess;
         private static void Shutdown()
         {
-
-            try
+            if (_childProcess != null)
             {
-                HostableWebCore.Shutdown(true);
+                _childProcess.StandardInput.Write("\n");
+                _childProcess.WaitForExit(5000);
             }
-            catch (Exception ex)
+            else
             {
-                Console.Error.WriteLine("Hostable webcore didn't shut down cleanly:");
-                Console.Error.WriteLine(ex);
-            }
-            if (Directory.Exists(_options.TempDirectory))
-            {
-                for (var i = 0; i < 5; i++)
+                try
                 {
-                    try
+                    HostableWebCore.Shutdown(true);
+                }
+                catch (Exception ex)
+                {
+                    Console.Error.WriteLine("Hostable webcore didn't shut down cleanly:");
+                    Console.Error.WriteLine(ex);
+                }
+                if (Directory.Exists(_options.TempDirectory))
+                {
+                    for (var i = 0; i < 5; i++)
                     {
-                        Directory.Delete(_options.TempDirectory, true);
-                        break;
-                    }
-                    catch (UnauthorizedAccessException) // just make sure all locks are released, cuz hwc may not shutdown instantly
-                    {
-                        Thread.Sleep(500);
+                        try
+                        {
+                            Directory.Delete(_options.TempDirectory, true);
+                            break;
+                        }
+                        catch (UnauthorizedAccessException) // just make sure all locks are released, cuz hwc may not shutdown instantly
+                        {
+                            Thread.Sleep(500);
+                        }
                     }
                 }
             }
+            
         }
 
         static bool ConsoleEventCallback(CtrlEvent eventType)
@@ -150,6 +200,9 @@ namespace HwcBootstrapper
             {
                 options.Port = port;
             }
+            options.User = Environment.GetEnvironmentVariable("SERVICE_USERNAME");
+            options.Password = Environment.GetEnvironmentVariable("SERVICE_PASSWORD");
+
             var isValid = Parser.Default.ParseArgumentsStrict(args, options);
             if (!isValid)
             {
@@ -162,6 +215,8 @@ namespace HwcBootstrapper
             options.ApplicationHostConfigPath = Path.Combine(configDirectory, "ApplicationHost.config");
             options.WebConfigPath = Path.Combine(configDirectory, "Web.config");
             options.AspnetConfigPath = Path.Combine(configDirectory, "AspNet.config");
+
+
             return options;
         }
 
