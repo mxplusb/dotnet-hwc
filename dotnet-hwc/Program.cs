@@ -37,7 +37,7 @@ namespace HwcBootstrapper
                 File.WriteAllText(_options.AspnetConfigPath, aspNetText);
 
                 var impersonationRequired = !string.IsNullOrEmpty(_options.User);
-                IDisposable impresonationContext;
+                IDisposable impresonationContext = null;
                 if (impersonationRequired)
                 {
                     string userName = _options.User;
@@ -52,22 +52,19 @@ namespace HwcBootstrapper
 
                     impresonationContext = Impersonation.LogonUser(domain, userName, _options.Password, LogonType.NewCredentials);
                 }
-                else
+                try
                 {
-                    impresonationContext = new DummyDisposable();
+                    HostableWebCore.Activate(_options.ApplicationHostConfigPath, _options.WebConfigPath, _options.ApplicationInstanceId);
                 }
-                using (impresonationContext)
+                catch (UnauthorizedAccessException)
                 {
-                    try
-                    {
-                        HostableWebCore.Activate(_options.ApplicationHostConfigPath, _options.WebConfigPath, _options.ApplicationInstanceId);
-                    }
-                    catch (UnauthorizedAccessException)
-                    {
-                        Console.Error.WriteLine("Access denied starting hostable web core. Start the application as administrator");
-                        Console.WriteLine("===========================");
-                        throw;
-                    }
+                    Console.Error.WriteLine("Access denied starting hostable web core. Start the application as administrator");
+                    Console.WriteLine("===========================");
+                    throw;
+                }
+                finally
+                {
+                    impresonationContext?.Dispose();
                 }
 
                 Console.WriteLine($"Server ID {_options.ApplicationInstanceId} started");
@@ -169,14 +166,6 @@ namespace HwcBootstrapper
             if (missingDlls.Any())
             {
                 throw new ValidationException($"Missing required ddls:\n{string.Join("\n", missingDlls)}");
-            }
-        }
-
-        private class DummyDisposable : IDisposable
-        {
-            public void Dispose()
-            {
-                
             }
         }
     }
