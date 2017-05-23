@@ -1,12 +1,15 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Security.Principal;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Xml.Linq;
 using System.Xml.XPath;
 using CommandLine;
 using HwcBootstrapper.ConfigTemplates;
+using JobManagement;
 using SimpleImpersonation;
 
 namespace HwcBootstrapper
@@ -20,6 +23,7 @@ namespace HwcBootstrapper
         static int Main(string[] args)
         {
             SystemEvents.SetConsoleEventHandler(ConsoleEventCallback);
+            IDisposable impresonationContext = null;
             try
             {
                 _options = LoadOptions(args);
@@ -37,11 +41,12 @@ namespace HwcBootstrapper
                 File.WriteAllText(_options.AspnetConfigPath, aspNetText);
 
                 var impersonationRequired = !string.IsNullOrEmpty(_options.User);
-                IDisposable impresonationContext = null;
+                Console.WriteLine("Activating HWC with following settings:");
+                
                 if (impersonationRequired)
                 {
                     string userName = _options.User;
-                    string domain = string.Empty;
+                    string domain = null;
                     var match = Regex.Match(_options.User, @"^(?<domain>\w+)\\(?<user>\w+)$"); // parse out domain from format DOMAIN\Username
 
                     if (match.Success)
@@ -49,11 +54,18 @@ namespace HwcBootstrapper
                         userName = match.Groups["user"].Value;
                         domain = match.Groups["domain"].Value;
                     }
-
-                    impresonationContext = Impersonation.LogonUser(domain, userName, _options.Password, LogonType.NewCredentials);
+                    Console.WriteLine($"Impersonation user {userName} for domain {domain}");
+                    impresonationContext = Impersonation.LogonUser(domain, userName, _options.Password, LogonType.Service);
+                    Console.WriteLine(WindowsIdentity.GetCurrent().Name);
                 }
                 try
                 {
+                    
+                    Console.WriteLine($"ApplicationHost.config: {_options.ApplicationHostConfigPath}");
+                    Console.WriteLine($"Web.config: {_options.WebConfigPath}");
+                    var process = Process.Start("cmd");
+                    var job = new Job();
+                    job.AddProcess(process.Handle);
                     HostableWebCore.Activate(_options.ApplicationHostConfigPath, _options.WebConfigPath, _options.ApplicationInstanceId);
                 }
                 catch (UnauthorizedAccessException)
@@ -62,10 +74,7 @@ namespace HwcBootstrapper
                     Console.WriteLine("===========================");
                     throw;
                 }
-                finally
-                {
-                    impresonationContext?.Dispose();
-                }
+
 
                 Console.WriteLine($"Server ID {_options.ApplicationInstanceId} started");
                 Console.WriteLine("PRESS Enter to shutdown");
@@ -92,6 +101,7 @@ namespace HwcBootstrapper
             finally
             {
                 Shutdown();
+                impresonationContext?.Dispose();
             }
 
             return 1;

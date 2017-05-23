@@ -54,10 +54,6 @@
     <Reference Include="CommandLine, Version=1.9.71.2, Culture=neutral, PublicKeyToken=de6f01bd326f8c32, processorArchitecture=MSIL">
       <HintPath>..\packages\CommandLineParser.1.9.71\lib\net45\CommandLine.dll</HintPath>
     </Reference>
-    <Reference Include="SimpleImpersonation, Version=2.0.1.27158, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\SimpleImpersonation.2.0.1\lib\net40-Client\SimpleImpersonation.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -86,6 +82,12 @@
     </Compile>
     <Compile Include="ConfigTemplates\WebConfig.User.cs" />
     <Compile Include="CtrlEvent.cs" />
+    <Compile Include="Impersonation\Impersonation.cs" />
+    <Compile Include="Impersonation\ImpersonationException.cs" />
+    <Compile Include="Impersonation\LogonType.cs" />
+    <Compile Include="Impersonation\NativeMethods.cs" />
+    <Compile Include="Impersonation\SafeTokenHandle.cs" />
+    <Compile Include="JobObject.cs" />
     <Compile Include="Options.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
