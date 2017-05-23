@@ -19,12 +19,12 @@ namespace HwcBootstrapper
     {
         static bool ConsoleEventCallback(CtrlEvent eventType)
         {
-            Shutdown();
+            _exitWaitHandle.Set();
             return true;
         }
 
         private static Options _options;
-
+        private static readonly ManualResetEvent _exitWaitHandle = new ManualResetEvent(false);
         static int Main(string[] args)
         {
             SystemEvents.SetConsoleEventHandler(ConsoleEventCallback);
@@ -72,7 +72,7 @@ namespace HwcBootstrapper
                     {
                         HostableWebCore.Activate(_options.ApplicationHostConfigPath, _options.WebConfigPath, _options.ApplicationInstanceId);
                     }
-                    catch (UnauthorizedAccessException ex)
+                    catch (UnauthorizedAccessException)
                     {
                         Console.Error.WriteLine("Access denied starting hostable web core. Start the application as administrator");
                         Console.WriteLine("===========================");
@@ -83,26 +83,32 @@ namespace HwcBootstrapper
 
                 Console.WriteLine($"Server ID {_options.ApplicationInstanceId} started");
                 Console.WriteLine("PRESS Enter to shutdown");
-
-                Console.ReadLine();
+                // we gonna read on different thread here because Console.ReadLine is not the only way the program can end
+                // we're also listening to the system events where the app is ordered to shutdown. exitWaitHandle is used to
+                // hook up both of these events
+                new Thread(() =>
+                    {
+                        Console.ReadLine();
+                        _exitWaitHandle.Set();
+                    }).Start();
+                _exitWaitHandle.WaitOne();
+                return 0;
             }
 
             catch (ValidationException ve)
             {
                 Console.Error.WriteLine(ve.Message);
-                return 1;
             }
             catch (Exception ex)
             {
                 Console.Error.WriteLine(ex);
-                return 1;
             }
             finally
             {
                 Shutdown();
             }
-            
-            return 0;
+
+            return 1;
         }
 
         private static void Shutdown()
@@ -117,16 +123,19 @@ namespace HwcBootstrapper
                 Console.Error.WriteLine("Hostable webcore didn't shut down cleanly:");
                 Console.Error.WriteLine(ex);
             }
-            
-            for (int i = 0; i < 5; i++)
+            if (Directory.Exists(_options.TempDirectory))
             {
-                try
+                for (int i = 0; i < 5; i++)
                 {
-                    Directory.Delete(_options.TempDirectory);
-                }
-                catch (UnauthorizedAccessException) // just make sure all locks are released
-                {
-                    Thread.Sleep(500);
+                    try
+                    {
+                        Directory.Delete(_options.TempDirectory, true);
+                        break;
+                    }
+                    catch (UnauthorizedAccessException) // just make sure all locks are released, cuz hwc may not shutdown instantly
+                    {
+                        Thread.Sleep(500);
+                    }
                 }
             }
         }

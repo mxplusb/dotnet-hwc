@@ -12,7 +12,7 @@ namespace HwcBootstrapper
         [Option("port", HelpText = "port for the application to listen with", Required = false)]
         public int Port { get; set; } = 8080;
 
-        [Option("user", DefaultValue = "", HelpText = "windows username to run application to run under", Required = false)]
+        [Option("user", DefaultValue = "", HelpText = "windows username to run application to run under (if user part of domain, use DOMAIN\\Username)", Required = false)]
         public string User { get; set; } 
 
         [Option("password", DefaultValue = "", HelpText = "windows password to run application to run under", Required = false)]
