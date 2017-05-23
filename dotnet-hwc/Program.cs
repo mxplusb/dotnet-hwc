@@ -13,14 +13,10 @@ namespace HwcBootstrapper
 {
     class Program
     {
-        static bool ConsoleEventCallback(CtrlEvent eventType)
-        {
-            _exitWaitHandle.Set();
-            return true;
-        }
-
         private static Options _options;
+
         private static readonly ManualResetEvent _exitWaitHandle = new ManualResetEvent(false);
+
         static int Main(string[] args)
         {
             SystemEvents.SetConsoleEventHandler(ConsoleEventCallback);
@@ -39,8 +35,6 @@ namespace HwcBootstrapper
                 File.WriteAllText(_options.ApplicationHostConfigPath, appConfigText);
                 File.WriteAllText(_options.WebConfigPath, webConfigText);
                 File.WriteAllText(_options.AspnetConfigPath, aspNetText);
-
-
 
                 var impersonationRequired = !string.IsNullOrEmpty(_options.User);
                 IDisposable impresonationContext;
@@ -75,7 +69,6 @@ namespace HwcBootstrapper
                         throw;
                     }
                 }
-
 
                 Console.WriteLine($"Server ID {_options.ApplicationInstanceId} started");
                 Console.WriteLine("PRESS Enter to shutdown");
@@ -121,7 +114,7 @@ namespace HwcBootstrapper
             }
             if (Directory.Exists(_options.TempDirectory))
             {
-                for (int i = 0; i < 5; i++)
+                for (var i = 0; i < 5; i++)
                 {
                     try
                     {
@@ -136,13 +129,12 @@ namespace HwcBootstrapper
             }
         }
 
-        private class DummyDisposable : IDisposable
+        static bool ConsoleEventCallback(CtrlEvent eventType)
         {
-            public void Dispose()
-            {
-                
-            }
+            _exitWaitHandle.Set();
+            return true;
         }
+
         public static Options LoadOptions(string[] args)
         {
             var options = new Options();
@@ -165,6 +157,7 @@ namespace HwcBootstrapper
             options.AspnetConfigPath = Path.Combine(configDirectory, "AspNet.config");
             return options;
         }
+
         public static void ValidateRequiredDllDependencies(string applicationHostConfigText)
         {
             var doc = XDocument.Parse(applicationHostConfigText);
@@ -176,6 +169,14 @@ namespace HwcBootstrapper
             if (missingDlls.Any())
             {
                 throw new ValidationException($"Missing required ddls:\n{string.Join("\n", missingDlls)}");
+            }
+        }
+
+        private class DummyDisposable : IDisposable
+        {
+            public void Dispose()
+            {
+                
             }
         }
     }
