@@ -7,7 +7,7 @@
     <ProjectGuid>{64E81375-72F0-49A4-8033-04752BE6F86F}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <RootNamespace>HwcBootstrapper</RootNamespace>
-    <AssemblyName>HwcBootstrapper</AssemblyName>
+    <AssemblyName>hwc</AssemblyName>
     <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>

@@ -215,8 +215,7 @@ namespace HwcBootstrapper
             options.ApplicationHostConfigPath = Path.Combine(configDirectory, "ApplicationHost.config");
             options.WebConfigPath = Path.Combine(configDirectory, "Web.config");
             options.AspnetConfigPath = Path.Combine(configDirectory, "AspNet.config");
-
-
+          
             return options;
         }
 

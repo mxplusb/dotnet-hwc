@@ -8,12 +8,13 @@ namespace HwcBootstrapper
     public class Options
     {
         private string _user;
-
+      
         [Option("appRootPath", DefaultValue = ".", HelpText = "app web root path", Required = false)]
         public string AppRootPath { get; set; } = Environment.CurrentDirectory;
 
         [Option("port", HelpText = "port for the application to listen with", Required = false)]
         public int Port { get; set; } = 8080;
+
 
         [Option("user", HelpText = "windows username to run application to run under (if user part of domain, use DOMAIN\\Username)", Required = false)]
         public string User
@@ -40,6 +41,7 @@ namespace HwcBootstrapper
         public string Domain { get; private set; }
 
         [Option("password", HelpText = "windows password to run application to run under", Required = false)]
+
         public string Password { get; set; }
 
         public string AspnetConfigPath { get; set; } = string.Empty;
